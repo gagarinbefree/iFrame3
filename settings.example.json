@@ -1,0 +1,7 @@
+{
+  "photosDir": "",
+  "cacheLimit": 50,
+  "slideshowIntervalSeconds": 10,
+  "maxPhotoWidth": 2048,
+  "maxPhotoHeight": 1536
+}

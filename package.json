@@ -1,0 +1,31 @@
+{
+  "name": "iframe3",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "webpack --mode production && npm run build:server && node .server/utils/build-assets.js",
+    "start": "npm run build && node .server/services/server.js",
+    "test": "node --test --test-isolation=none tests/*.test.cjs",
+    "lint": "eslint src server-src --ext .ts",
+    "format": "prettier --write src server-src public tests settings.example.json webpack.config.cjs tsconfig.json tsconfig.server.json README.md",
+    "format:check": "prettier --check src server-src public tests settings.example.json webpack.config.cjs tsconfig.json tsconfig.server.json README.md",
+    "build:server": "tsc -p tsconfig.server.json",
+    "pretest": "npm run build:server",
+    "prebuild": "npm run format:check"
+  },
+  "dependencies": {
+    "framework7": "^1.7.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "fake-indexeddb": "^6.2.4",
+    "prettier": "^3.9.10",
+    "ts-loader": "^9.6.2",
+    "typescript": "5.9.3",
+    "webpack": "^5.112.2",
+    "webpack-cli": "^7.3.1"
+  }
+}
