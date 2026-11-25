@@ -1,0 +1,8 @@
+Package: io.github.gagarinbefree.iframe3
+Name: iFrame3
+Architecture: iphoneos-arm
+Version: 0.1-1
+Depends: firmware (>= 9.0)
+Maintainer: iFrame3 project
+Section: Multimedia
+Description: Fullscreen viewer for the local iFrame3 photo server.

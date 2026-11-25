@@ -14,18 +14,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Fetch iOS 9.3 SDK
+      - name: Fetch ARMv7 SDK
         uses: actions/checkout@v4
         with:
           repository: theos/sdks
           ref: 0222fd5413cf4b9af096f37b4621afa2688572f7
           path: sdk-source
-          sparse-checkout: iPhoneOS9.3.sdk
+          sparse-checkout: iPhoneOS10.3.sdk
           persist-credentials: false
+      - name: Install Debian package builder
+        run: command -v dpkg-deb || brew install dpkg
       - name: Build and verify application
-        run: bash ios/build.sh "$PWD/sdk-source/iPhoneOS9.3.sdk" "$RUNNER_TEMP/frame"
+        run: bash ios/build.sh "$PWD/sdk-source/iPhoneOS10.3.sdk" "$RUNNER_TEMP/frame"
       - uses: actions/upload-artifact@v4
         with:
           name: iFrame3-armv7
-          path: ${{ runner.temp }}/frame/iFrame3-armv7.ipa
+          path: |
+            ${{ runner.temp }}/frame/iFrame3-armv7.ipa
+            ${{ runner.temp }}/frame/iFrame3-armv7.deb
           if-no-files-found: error
