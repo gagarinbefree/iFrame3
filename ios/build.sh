@@ -9,7 +9,7 @@ xcrun clang -target armv7-apple-ios9.0 -isysroot "$sdk" -fobjc-arc -fmodules-cac
   -Os -c ios/FrameApp.m -o "$out/FrameApp.o"
 xcrun ld-classic -arch armv7 -platform_version ios 9.0 10.3 -syslibroot "$sdk" \
   -o "$app/IFrame3" "$out/FrameApp.o" -framework UIKit -framework WebKit \
-  -framework Foundation -lobjc -lSystem
+  -framework Foundation -framework CoreGraphics -lobjc -lSystem
 codesign --force --sign - --timestamp=none --digest-algorithm=sha1 "$app"
 codesign --verify "$app"
 python3 ios/verify.py "$app"

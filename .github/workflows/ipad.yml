@@ -17,8 +17,8 @@ jobs:
       - name: Fetch ARMv7 SDK
         uses: actions/checkout@v4
         with:
-          repository: theos/sdks
-          ref: 0222fd5413cf4b9af096f37b4621afa2688572f7
+          repository: xybp888/iOS-SDKs
+          ref: 4a48e5409f8ea6ac422c44d91b86fa0f8ae010ff
           path: sdk-source
           sparse-checkout: iPhoneOS10.3.sdk
           persist-credentials: false
