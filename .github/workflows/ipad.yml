@@ -1,0 +1,31 @@
+name: iPad 3 application
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, native-ipad-frame]
+    paths: ['ios/**', '.github/workflows/ipad.yml']
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: macos-15-intel
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch iOS 9.3 SDK
+        uses: actions/checkout@v4
+        with:
+          repository: theos/sdks
+          ref: 0222fd5413cf4b9af096f37b4621afa2688572f7
+          path: sdk-source
+          sparse-checkout: iPhoneOS9.3.sdk
+          persist-credentials: false
+      - name: Build and verify application
+        run: bash ios/build.sh "$PWD/sdk-source/iPhoneOS9.3.sdk" "$RUNNER_TEMP/frame"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iFrame3-armv7
+          path: ${{ runner.temp }}/frame/iFrame3-armv7.ipa
+          if-no-files-found: error
