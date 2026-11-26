@@ -1,4 +1,4 @@
-# <img src="ios/home-icon.png" width="40" height="40" align="middle" alt=""> iFrame3
+# <img src="ios/home-icon.png" width="128" height="128" align="middle" alt=""> iFrame3
 
 iFrame3 turns an iPad 3 running iOS 9 into a full-screen photo frame. It reads photos directly from an SMB share and its subfolders, shuffles them and fits each photo on screen with its original proportions. The screen stays awake while the slideshow is active.
 
