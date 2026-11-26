@@ -52,7 +52,8 @@ static NSDictionary *settings(void) {
 - (void)loadView {
     _photo = [[UIImageView alloc] initWithFrame:CGRectZero];
     _photo.backgroundColor = UIColor.blackColor;
-    _photo.contentMode = UIViewContentModeScaleAspectFit;
+    _photo.contentMode = UIViewContentModeCenter;
+    _photo.image = [UIImage imageNamed:@"FrameMark"];
     self.view = _photo;
     _worker = dispatch_queue_create("iframe3.native.photos", DISPATCH_QUEUE_SERIAL);
 }
@@ -87,10 +88,11 @@ static NSDictionary *settings(void) {
             FrameSlide *slide = [self->_library nextSlide];
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (!self->_active || self->_generation != token) return;
-                if (!slide) {
+                if (!slide.image) {
                     [self performSelector:@selector(next) withObject:nil afterDelay:1];
                     return;
                 }
+                self->_photo.contentMode = UIViewContentModeScaleAspectFit;
                 self->_photo.image = slide.image;
                 self->_pending = slide;
                 self->_ticks = 0;

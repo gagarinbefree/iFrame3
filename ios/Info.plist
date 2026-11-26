@@ -22,6 +22,7 @@
     <string>UIInterfaceOrientationLandscapeRight</string>
   </array>
   <key>UIRequiresFullScreen</key><true/>
+  <key>UILaunchImageFile</key><string>FrameLaunch</string>
   <key>UIStatusBarHidden</key><true/>
 </dict>
 </plist>

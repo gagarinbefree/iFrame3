@@ -6,6 +6,15 @@ app="$out/Payload/IFrame3Native.app"
 lib="$PWD/smb-source"
 mkdir -p "$app/Frameworks" "$out/objects"
 cp ios/Info.plist "$app/"
+# Use the same centered artwork before UIKit starts and while the first photo loads.
+for scale in 1 2; do
+  suffix=""
+  if [[ "$scale" == 2 ]]; then suffix="@2x"; fi
+  mark="$app/FrameMark$suffix.png"
+  sips -Z "$((192 * scale))" ios/frame-mark.png --out "$mark" >/dev/null
+  sips --padColor 000000 -p "$((1024 * scale))" "$((768 * scale))" "$mark" --out "$app/FrameLaunch-Portrait$suffix.png" >/dev/null
+  sips --padColor 000000 -p "$((768 * scale))" "$((1024 * scale))" "$mark" --out "$app/FrameLaunch-Landscape$suffix.png" >/dev/null
+done
 build=${GITHUB_RUN_NUMBER:-1}
 attempt=${GITHUB_RUN_ATTEMPT:-1}
 [[ "$build" =~ ^[0-9]+$ && "$attempt" =~ ^[0-9]+$ ]]
