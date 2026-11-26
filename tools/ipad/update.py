@@ -15,8 +15,17 @@ from datetime import datetime, timezone
 from usb import Device
 
 REPO = "gagarinbefree/iFrame3"
-PACKAGE = "io.github.gagarinbefree.iframe3"
-APP = "Applications/IFrame3.app/"
+PACKAGE = "io.github.gagarinbefree.iframe3.native"
+ARTIFACT = "iFrame3-native-armv7"
+APP = "Applications/IFrame3Native.app/"
+APP_FILES = {APP + name for name in (
+    "IFrame3Native", "Info.plist", "_CodeSignature/CodeResources",
+    "Frameworks/libsmb2.dylib", "libsmb2-license.txt",
+)}
+APP_FILES.update(APP + name + suffix + ".png"
+                 for name in ("FrameIcon", "FrameMark", "FrameLaunch-Landscape", "FrameLaunch-Portrait")
+                 for suffix in ("", "@2x"))
+UPDATE_JOB = "/Library/LaunchDaemons/io.github.gagarinbefree.iframe3.update.plist"
 HERE = Path(__file__).resolve().parent
 CACHE = HERE.parents[1] / ".cache" / "ipad-updates"
 
@@ -30,7 +39,7 @@ def latest():
     run = next(r for r in runs["workflow_runs"] if r["event"] in ("push", "workflow_dispatch")
                and r["head_branch"] == "main" and r["head_repository"]["full_name"] == REPO)
     result = json.loads(api("actions/runs/%d/artifacts" % run["id"]))
-    artifact, = [a for a in result["artifacts"] if a["name"] == "iFrame3-armv7" and not a["expired"]]
+    artifact, = [a for a in result["artifacts"] if a["name"] == ARTIFACT and not a["expired"]]
     if not 0 < artifact["size_in_bytes"] <= 20 * 1024 * 1024:
         raise ValueError("Unexpected artifact size")
     digest = artifact["digest"]
@@ -43,9 +52,9 @@ def latest():
         CACHE.mkdir(parents=True, exist_ok=True)
         path.write_bytes(archive)
     with zipfile.ZipFile(io.BytesIO(archive)) as bundle:
-        if bundle.getinfo("iFrame3-armv7.deb").file_size > 16 * 1024 * 1024:
+        if bundle.getinfo(ARTIFACT + ".deb").file_size > 16 * 1024 * 1024:
             raise ValueError("Package exceeds size limit")
-        deb = bundle.read("iFrame3-armv7.deb")
+        deb = bundle.read(ARTIFACT + ".deb")
     return run["id"], deb
 
 
@@ -75,10 +84,9 @@ def contents(deb):
                 if entry.uid or entry.gid or entry.mode & 0o7022:
                     raise ValueError("Unexpected owner or mode: " + name)
                 if entry.isdir() and (name in ("", ".") or part == "data" and
-                        name in ("Applications", APP[:-1], APP + "_CodeSignature")):
+                        name in ("Applications", APP[:-1], APP + "_CodeSignature", APP + "Frameworks")):
                     continue
-                allowed = {"control"} if part == "control" else {
-                    APP + "IFrame3", APP + "Info.plist", APP + "_CodeSignature/CodeResources"}
+                allowed = {"control"} if part == "control" else APP_FILES
                 if (name not in allowed or name in files or not entry.isfile()
                         or entry.size > 8 * 1024 * 1024):
                     raise ValueError("Unexpected package entry: " + name)
@@ -87,7 +95,7 @@ def contents(deb):
         raise ValueError("Wrong package identifier")
     if plistlib.loads(files[APP + "Info.plist"])["CFBundleIdentifier"] != PACKAGE:
         raise ValueError("Wrong app bundle identifier")
-    if set(files) != {APP + "IFrame3", APP + "Info.plist", APP + "_CodeSignature/CodeResources"}:
+    if set(files) != APP_FILES:
         raise ValueError("Incomplete app")
     return files
 
@@ -102,7 +110,7 @@ def installed(device, expected):
 
 def deploy(device, deb, bootstrap):
     expected = contents(deb)
-    enabled = device.read("/Library/LaunchDaemons/" + PACKAGE + ".update.plist") is not None
+    enabled = device.read(UPDATE_JOB) is not None
     if not enabled and not bootstrap:
         raise RuntimeError("Run the one-time iPad setup first")
     if installed(device, expected) and enabled:

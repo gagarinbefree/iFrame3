@@ -2,8 +2,8 @@ name: Objective-C iPad frame
 on:
   workflow_dispatch:
   push:
-    branches: [objectivec-ipad-frame]
-    paths: ['ios/**', '.github/workflows/ipad.yml']
+    branches: [main, objectivec-ipad-frame]
+    paths: ['ios/**', 'tools/ipad/**', '.github/workflows/ipad.yml']
 permissions:
   contents: read
 jobs:
@@ -37,6 +37,11 @@ jobs:
           command -v magick || brew install imagemagick
       - name: Build and verify application
         run: bash ios/build.sh "$PWD/sdk-source/iPhoneOS10.3.sdk" "$RUNNER_TEMP/frame"
+      - name: Verify USB update package
+        working-directory: tools/ipad
+        run: |
+          python3 -m unittest discover
+          python3 -c 'from pathlib import Path; import sys, update; update.contents(Path(sys.argv[1]).read_bytes())' "$RUNNER_TEMP/frame/iFrame3-native-armv7.deb"
       - uses: actions/upload-artifact@v4
         with:
           name: iFrame3-native-armv7

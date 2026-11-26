@@ -27,7 +27,7 @@ class UpdateTests(unittest.TestCase):
 
     def test_requires_matching_files_and_configured_package(self):
         device = Mock()
-        expected = {"Applications/IFrame3.app/IFrame3": b"binary"}
+        expected = {update.APP + "IFrame3Native": b"binary"}
         prefix = b"Package: " + update.PACKAGE.encode()
         for state, result in ((b"install ok installed", True), (b"install ok unpacked", False)):
             device.read.side_effect = [b"binary", prefix + b"\nStatus: " + state + b"\n"]

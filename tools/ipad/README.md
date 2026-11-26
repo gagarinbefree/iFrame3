@@ -4,6 +4,8 @@ The Windows task checks for the paired iPad every five minutes while the configu
 
 Use Python 3.10 or later, the GitHub CLI authenticated as the Windows user, and the libimobiledevice Windows suite. The iPad uses its existing AFC2 service and package manager.
 
+The main build installs `io.github.gagarinbefree.iframe3.native` from the `iFrame3-native-armv7` artifact. An existing USB update job can keep using the same package staging path. Update the Windows checkout used by the scheduled task, or rerun `register.ps1` if its path changed.
+
 1. On Windows run `python tools/ipad/update.py --bootstrap --device <udid> --suite D:/windows/libimobile-suite-latest_w64`.
 2. Once on the iPad, run `su root -c 'sh /var/root/iframe3-enable.sh'` in MTerminal. This installs the initial frame and registers a launchd job that invokes dpkg for the single package under /var/root.
 3. On Windows run `./tools/ipad/register.ps1 -Device <udid>`. The latest check is recorded in `.cache/ipad-updates/last-check.txt`.

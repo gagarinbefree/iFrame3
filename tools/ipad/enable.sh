@@ -3,7 +3,7 @@
 set -eu
 pkg=/var/root/iframe3-update.deb
 job=/Library/LaunchDaemons/io.github.gagarinbefree.iframe3.update.plist
-test "$(/usr/bin/dpkg-deb -f "$pkg" Package)" = io.github.gagarinbefree.iframe3
+test "$(/usr/bin/dpkg-deb -f "$pkg" Package)" = io.github.gagarinbefree.iframe3.native
 /usr/bin/dpkg -i "$pkg"
 umask 022
 cat > "$job.new" <<'PLIST'
