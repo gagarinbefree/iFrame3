@@ -7,6 +7,11 @@ from pathlib import Path
 
 
 def verify_artwork(bundle, info):
+    """verify_artwork. Checks artwork declarations and the pixel size of each packaged PNG.
+
+    :param bundle: Path to the extracted application bundle.
+    :param info: Parsed application Info.plist.
+    """
     launch = info.get("UILaunchImageFile")
     if not launch:
         raise ValueError("Missing the iPad launch image declaration")
@@ -28,6 +33,10 @@ def verify_artwork(bundle, info):
 
 
 def verify(bundle):
+    """verify. Checks the device family, bundle identity, artwork and ARMv7 deployment target.
+
+    :param bundle: Directory containing the packaged application.
+    """
     with (bundle / "Info.plist").open("rb") as source:
         info = plistlib.load(source)
     if info["MinimumOSVersion"] != "9.0" or info["UIDeviceFamily"] != [2]:

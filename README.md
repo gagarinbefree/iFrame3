@@ -1,39 +1,20 @@
 # iFrame3
 
-Фоторамка для iPad 3 и Safari в iOS 9. Фотографии берутся из локальной или подключённой через SMB папки; уменьшенные копии сохраняются на устройстве. Проверка на iPad пока отложена.
+iFrame3 turns an iPad 3 running iOS 9 into a full-screen photo frame. It reads photos directly from an SMB share and its subfolders, shuffles them and fits each photo on screen with its original proportions. The screen stays awake while the slideshow is active.
 
-## Настройка и локальный запуск
+## Connect a photo share
 
-Установите Node.js 24 и выполните `npm install`. Все основные настройки задаются в файле `settings.local.json` в папке проекта. Пример находится в `settings.example.json`:
+1. Give the guest account read access to the photo share.
+2. Copy the [example settings](ios/settings.example.json) to `/var/mobile/Media/iFrame3Native/settings.json` on the iPad.
+3. Set `host` to the server name or IP address and `share` to the shared folder name. Set `folder` to a subfolder path or leave it empty to start at the share root.
+4. Open **iFrame3 Native**. Reopen the app after changing its settings.
 
-```json
-{
-  "photosDir": "C:\\Photos",
-  "cacheLimit": 50,
-  "slideshowIntervalSeconds": 10,
-  "maxPhotoWidth": 2048,
-  "maxPhotoHeight": 1536
-}
-```
+## Playback and storage
 
-`photosDir` — путь к фотографиям; для SMB можно указать сетевой путь Windows, например `\\\\SERVER\\Photos`, или букву подключённого диска. В JSON обратный слеш записывается дважды. Если общая папка требует авторизации, подключите её средствами Windows; пароли в iFrame3 вводить не нужно. Файл `settings.local.json` содержит локальный путь и исключён из Git.
+Photos change every 10 seconds by default. Adjust `slideshowIntervalSeconds` to change the interval. After a photo appears on screen, the app saves a resized JPEG on the iPad. Subsequent views can use that copy. If the share becomes unavailable, the slideshow continues with photos already cached for that source.
 
-`cacheLimit` — максимальное количество копий на устройстве (от 1 до 500); `slideshowIntervalSeconds` — интервал показа в секундах (от 1 до 3600). `maxPhotoWidth` и `maxPhotoHeight` — максимальные размеры горизонтальной фотографии в кэше; для вертикальной они меняются местами. После изменения JSON перезапустите приложение. При необходимости переменная окружения `PHOTOS_DIR` может временно переопределить путь из JSON.
+The default cache holds 50 photos. Set `cacheLimit` to change the limit and `maxPhotoWidth` and `maxPhotoHeight` to adjust the thumbnail dimensions. The app writes display and cache events to `frame.log` next to the settings file.
 
-Выполните `npm start` и откройте http://localhost:3000/. Приложение сразу показывает фотографии из настроенной папки и всех её подпапок. Снимки целиком помещаются на экране с сохранением пропорций и максимальным заполнением по одной стороне. Поддерживаются JPEG, PNG и GIF.
+## Build and install
 
-## Кэш и работа без папки
-
-Приложение постепенно сохраняет снимки на устройстве через IndexedDB, уменьшая копии до размеров, заданных в JSON (по умолчанию 2048 × 1536 или 1536 × 2048 для iPad 3) и сохраняя их в JPEG. При повторном показе используется сохранённая копия; изменённый файл обновляется в фоне. Прозрачность заполняется белым, а анимированный GIF сохраняется как неподвижный кадр. Исходники в общей папке не меняются.
-
-При уменьшении лимита старые копии удаляются. Если папка недоступна, доступны только сохранённые снимки этой папки. При восстановлении доступа приложение снова использует общую папку. Сервер и страница проверяют состояние примерно каждые 30 секунд; заполнение кэша идёт последовательно и может занять время.
-
-Для открытия фоторамки без сервера целевой Safari iOS 9 использует AppCache для файлов приложения. Сначала откройте приложение при доступном сервере и дождитесь сохранения фотографий. Затем открывайте тот же адрес и используйте тот же режим браузера: хранилище разных адресов и приватного режима не общее. Браузер может ограничить или очистить хранилище; лимит — предел количества, а не гарантия доступного места. Современные браузеры могут не поддерживать AppCache: переключение на сохранённые фото в уже открытой вкладке работает, но повторное открытие полностью без сервера в них не гарантировано. На iPad этот сценарий ещё не проверен.
-
-Сервер создаёт статический список файлов и обновляет его примерно каждые 30 секунд. Сам SMB-доступ обеспечивает операционная система, сервер не хранит учётные данные и не принимает команды записи в папку. Если папка не задана или недоступна, используются сохранённые фото. Сервер пока доступен только на этом компьютере — проверка доступа с iPad отложена.
-
-Если порт 3000 занят, выберите другой: `$env:PORT=3001; npm start`.
-
-## Разработка
-
-Клиент и локальный сервер написаны на TypeScript с использованием классов; интерфейс использует Framework7 v1 и Webpack. JavaScript собирается с синтаксисом ES5. Проверки: `npm test`, `npm run lint`, `npm run format:check`.
+The branch workflow publishes the `iFrame3-native-armv7` artifact. Install its Debian package on the iPad using the device package manager. The artifact also includes an IPA archive and the `FrameCheck` device test. [Native build details](ios/README.md)

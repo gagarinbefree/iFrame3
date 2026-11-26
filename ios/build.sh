@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# build.sh. Compiles, signs and verifies the ARMv7 application and device test.
+# @param $1 Path to the iPhoneOS 10.3 SDK.
+# @param $2 Output directory for the build products and installable packages.
 set -euo pipefail
 sdk=${1:?Supply the path to iPhoneOS10.3.sdk}
 out=${2:?Supply an output directory}

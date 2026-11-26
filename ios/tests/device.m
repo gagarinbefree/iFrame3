@@ -4,9 +4,19 @@
 @interface OfflineLibrary : PhotoLibrary
 @end
 @implementation OfflineLibrary
+/**
+ * connect. Simulates an unavailable share during the offline cache check.
+ * @return NO on every attempt.
+ */
 - (BOOL)connect { return NO; }
 @end
 
+/**
+ * main. Exercises the SMB download, first cache write and offline playback on the device.
+ * @param argc Argument count, including the executable name.
+ * @param argv Argument strings with the settings file path at index one.
+ * @return Zero on success or a nonzero code identifying the failed check.
+ */
 int main(int argc, char **argv) {
     @autoreleasepool {
         if (argc != 2) return 2;

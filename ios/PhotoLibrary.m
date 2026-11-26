@@ -26,7 +26,9 @@
     }
     return self;
 }
+/** dealloc. Releases the SMB context when the library is destroyed. */
 - (void)dealloc { if (_smb) smb2_destroy_context(_smb); }
+/** disconnected. Clears the share scan and delays the next connection attempt by 30 seconds. */
 - (void)disconnected {
     if (_smb) smb2_destroy_context(_smb);
     _smb = NULL;
@@ -35,6 +37,10 @@
     _retryAt = [NSDate dateWithTimeIntervalSinceNow:30];
     NSLog(@"iFrame3 Native share unavailable");
 }
+/**
+ * connect. Reuses the SMB connection or opens the configured share when a retry is due.
+ * @return YES when a share connection is ready for reading.
+ */
 - (BOOL)connect {
     if (_smb) return YES;
     if (_retryAt.timeIntervalSinceNow > 0) return NO;
@@ -58,6 +64,11 @@
     NSLog(@"iFrame3 Native SMB connected");
     return YES;
 }
+/**
+ * scanDirectory:. Queues child directories and adds supported image files to the slideshow.
+ * @param path Directory relative to the share root. An empty string selects the root.
+ * @return YES after enumerating the directory, or NO if it could not be opened.
+ */
 - (BOOL)scanDirectory:(NSString *)path {
     struct smb2dir *dir = smb2_opendir(_smb, path.UTF8String);
     if (!dir) return NO;
@@ -80,6 +91,11 @@
     smb2_closedir(_smb, dir);
     return YES;
 }
+/**
+ * download:. Streams one remote file to temporary storage and decodes an oriented thumbnail.
+ * @param photo Scanned entry containing the share-relative path and expected byte count.
+ * @return A display-sized image, or nil for an incomplete transfer or unreadable image.
+ */
 - (UIImage *)download:(NSDictionary *)photo {
     struct smb2fh *handle = smb2_open(_smb, [photo[@"path"] UTF8String], O_RDONLY);
     if (!handle) { [self disconnected]; return nil; }
@@ -119,6 +135,11 @@
     [[NSFileManager defaultManager] removeItemAtURL:temp error:nil];
     return image;
 }
+/**
+ * cached:. Decodes a saved JPEG into a slide.
+ * @param file Local cache URL for a photo.
+ * @return A slide marked as cached, or nil if the file cannot be decoded.
+ */
 - (FrameSlide *)cached:(NSURL *)file {
     UIImage *image = [UIImage imageWithContentsOfFile:file.path];
     if (!image) return nil;
@@ -128,6 +149,10 @@
     slide.cacheFile = file;
     return slide;
 }
+/**
+ * offlineSlide. Picks a random readable image from this source's local cache.
+ * @return A cached slide, or nil when no candidate can be decoded.
+ */
 - (FrameSlide *)offlineSlide {
     if (!_offline.count) _offline = [_store.files mutableCopy];
     while (_offline.count) {
