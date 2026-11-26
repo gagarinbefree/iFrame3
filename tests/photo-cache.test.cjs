@@ -14,6 +14,39 @@ const open = () =>
 const invoke = (fn) =>
   new Promise((resolve, reject) => fn((error, value) => (error ? reject(error) : resolve(value))));
 
+test('upgrades existing photos and writes atomically with iOS 9 single-store transactions', async () => {
+  const { IDBFactory } = require('fake-indexeddb');
+  const factory = new IDBFactory();
+  const photo = { url: '/photos/old', name: 'old', folder: '', version: '1' };
+  const legacy = factory.open('iframe3-photos', 1);
+  legacy.onupgradeneeded = () => {
+    legacy.result
+      .createObjectStore('images', { keyPath: 'url' })
+      .put({ url: photo.url, data: 'old image' });
+    legacy.result.createObjectStore('index', { keyPath: 'url' }).put({ ...photo, savedAt: 1 });
+  };
+  await new Promise((resolve, reject) => {
+    legacy.onsuccess = () => {
+      legacy.result.close();
+      resolve();
+    };
+    legacy.onerror = () => reject(legacy.error);
+  });
+  const cache = await invoke((done) => PhotoCache.open(factory, done, 1));
+  const transact = cache.db.transaction.bind(cache.db);
+  cache.db.transaction = (scope, ...args) => {
+    if (typeof scope !== 'string') throw new Error('NotFoundError on iOS 9');
+    return transact(scope, ...args);
+  };
+  await invoke((done) => cache.setLimit(1, done));
+  assert.deepEqual(await invoke((done) => cache.list(done)), [photo]);
+  assert.equal(await invoke((done) => cache.get(photo.url, done)), 'old image');
+  const next = { ...photo, url: '/photos/new' };
+  await invoke((done) => cache.put(next, 'new image', done));
+  assert.deepEqual(await invoke((done) => cache.list(done)), [next]);
+  assert.equal(await invoke((done) => cache.get(photo.url, done)), null);
+});
+
 test('persists cached photo data and separate metadata for offline listing', async () => {
   const cache = await open();
   const photo = { url: '/photos/test.jpg', name: 'test.jpg', folder: 'Семья', version: '1:2' };

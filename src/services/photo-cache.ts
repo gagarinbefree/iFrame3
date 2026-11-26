@@ -51,7 +51,8 @@ export class PhotoDimensions {
 export class PhotoCache {
   private readonly db: IDBDatabase;
   private maxPhotos: number;
-  private serial = 0;
+  // Photo keys are strings. The numeric key holds only the ordered directory.
+  private static readonly directoryKey = 0;
 
   /**
    * constructor. Creates a cache over an open database.
@@ -72,16 +73,37 @@ export class PhotoCache {
   public static open(factory: IDBFactory, done: Callback<PhotoCache>, maxPhotos = 50): void {
     let request: IDBOpenDBRequest;
     try {
-      request = factory.open('iframe3-photos', 1);
+      request = factory.open('iframe3-photos', 2);
     } catch (_) {
       done(new Error('Хранилище фотографий недоступно.'));
       return;
     }
-    request.onupgradeneeded = (): void => {
+    request.onupgradeneeded = (event): void => {
       const db = request.result;
-      if (!db.objectStoreNames.contains('images'))
+      if (event.oldVersion === 0) {
         db.createObjectStore('images', { keyPath: 'url' });
-      if (!db.objectStoreNames.contains('index')) db.createObjectStore('index', { keyPath: 'url' });
+        return;
+      }
+      const transaction = request.transaction!;
+      const images = transaction.objectStore('images');
+      const entries: CacheEntry[] = [];
+      const cursor = transaction.objectStore('index').openCursor();
+      cursor.onsuccess = (): void => {
+        const item = cursor.result;
+        if (item) {
+          entries.push(item.value as CacheEntry);
+          item.continue();
+          return;
+        }
+        entries.sort((a, b) => (a.savedAt || 0) - (b.savedAt || 0));
+        const photos = entries.map((entry): Photo => {
+          const photo: Photo = { url: entry.url, name: entry.name, folder: entry.folder };
+          if (entry.version !== undefined) photo.version = entry.version;
+          return photo;
+        });
+        images.put({ url: PhotoCache.directoryKey, photos });
+        db.deleteObjectStore('index');
+      };
     };
     request.onerror = (): void => {
       done(new Error('Не удалось открыть кэш фотографий.'));
@@ -120,21 +142,12 @@ export class PhotoCache {
    */
   public list(done: Callback<Photo[]>): void {
     try {
-      const result: Photo[] = [];
-      const cursor = this.db.transaction('index', 'readonly').objectStore('index').openCursor();
-      cursor.onsuccess = (): void => {
-        const entry = cursor.result;
-        if (entry) {
-          const value = entry.value as CacheEntry;
-          const photo: Photo = { url: value.url, name: value.name, folder: value.folder };
-          if (value.version !== undefined) photo.version = value.version;
-          result.push(photo);
-          entry.continue();
-        } else done(null, result);
-      };
-      cursor.onerror = (): void => {
-        done(new Error('Не удалось прочитать список кэша.'));
-      };
+      const request = this.db
+        .transaction('images', 'readonly')
+        .objectStore('images')
+        .get(PhotoCache.directoryKey);
+      request.onsuccess = (): void => done(null, request.result ? request.result.photos : []);
+      request.onerror = (): void => done(new Error('Не удалось прочитать список кэша.'));
     } catch (_) {
       done(new Error('Не удалось прочитать список кэша.'));
     }
@@ -147,37 +160,7 @@ export class PhotoCache {
    */
   public setLimit(limit: number, done: Callback<void>): void {
     this.maxPhotos = Math.max(1, Math.floor(limit));
-    try {
-      const transaction = this.db.transaction(['images', 'index'], 'readwrite');
-      const images = transaction.objectStore('images');
-      const metadata = transaction.objectStore('index');
-      const entries: CacheEntry[] = [];
-      const cursor = metadata.openCursor();
-      cursor.onsuccess = (): void => {
-        const item = cursor.result;
-        if (item) {
-          entries.push(item.value as CacheEntry);
-          item.continue();
-          return;
-        }
-        entries.sort((a: CacheEntry, b: CacheEntry): number => (a.savedAt || 0) - (b.savedAt || 0));
-        while (entries.length > this.maxPhotos) {
-          const removed = entries.shift();
-          if (removed) {
-            images.delete(removed.url);
-            metadata.delete(removed.url);
-          }
-        }
-      };
-      transaction.oncomplete = (): void => {
-        done(null);
-      };
-      transaction.onabort = (): void => {
-        done(new Error('Не удалось изменить размер кэша.'));
-      };
-    } catch (_) {
-      done(new Error('Не удалось изменить размер кэша.'));
-    }
+    this.updateDirectory(done);
   }
 
   /**
@@ -187,48 +170,37 @@ export class PhotoCache {
    * @param done - Receives the completion result.
    */
   public put(photo: Photo, data: string, done: Callback<void>): void {
+    this.updateDirectory(done, { photo, data });
+  }
+
+  /**
+   * updateDirectory. Commits the photo, directory and evictions in one single-store transaction.
+   * @param done - Receives the transaction result.
+   * @param addition - Optional newly displayed photo and its encoded image.
+   */
+  private updateDirectory(done: Callback<void>, addition?: { photo: Photo; data: string }): void {
     try {
-      const transaction = this.db.transaction(['images', 'index'], 'readwrite');
-      const images = transaction.objectStore('images');
-      const metadata = transaction.objectStore('index');
-      const entries: CacheEntry[] = [];
-      const cursor = metadata.openCursor();
-      cursor.onsuccess = (): void => {
-        const item = cursor.result;
-        if (item) {
-          entries.push(item.value as CacheEntry);
-          item.continue();
+      const transaction = this.db.transaction('images', 'readwrite');
+      const store = transaction.objectStore('images');
+      const directory = store.get(PhotoCache.directoryKey);
+      directory.onsuccess = (): void => {
+        let photos: Photo[] = directory.result ? directory.result.photos : [];
+        if (addition) {
+          const { photo, data } = addition;
+          photos = photos.filter((entry) => entry.url !== photo.url);
+          photos.push(photo);
+          store.put({ url: photo.url, data });
+        } else if (photos.length <= this.maxPhotos) {
           return;
         }
-        const other = entries.filter((entry: CacheEntry): boolean => entry.url !== photo.url);
-        other.sort((a: CacheEntry, b: CacheEntry): number => (a.savedAt || 0) - (b.savedAt || 0));
-        const limit = Math.max(1, Math.floor(this.maxPhotos));
-        while (other.length >= limit) {
-          const removed = other.shift();
-          if (removed) {
-            metadata.delete(removed.url);
-            images.delete(removed.url);
-          }
-        }
-        this.serial++;
-        const record: CacheEntry = {
-          url: photo.url,
-          name: photo.name,
-          folder: photo.folder,
-          savedAt: Date.now() * 1000 + this.serial,
-        };
-        if (photo.version !== undefined) record.version = photo.version;
-        metadata.put(record);
-        images.put({ url: photo.url, data: data });
+        const removed = photos.splice(0, Math.max(0, photos.length - this.maxPhotos));
+        for (const photo of removed) store.delete(photo.url);
+        store.put({ url: PhotoCache.directoryKey, photos });
       };
-      transaction.oncomplete = (): void => {
-        done(null);
-      };
-      transaction.onabort = (): void => {
-        done(new Error('Не удалось сохранить фотографию. Возможно, недостаточно места.'));
-      };
+      transaction.oncomplete = (): void => done(null);
+      transaction.onabort = (): void => done(new Error('Не удалось обновить кэш фотографий.'));
     } catch (_) {
-      done(new Error('Не удалось сохранить фотографию.'));
+      done(new Error('Не удалось обновить кэш фотографий.'));
     }
   }
 }
