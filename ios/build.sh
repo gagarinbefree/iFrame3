@@ -5,6 +5,10 @@ out=${2:?Supply an output directory}
 app="$out/Payload/IFrame3.app"
 mkdir -p "$app"
 cp ios/Info.plist "$app/"
+build=${GITHUB_RUN_NUMBER:-1}
+attempt=${GITHUB_RUN_ATTEMPT:-1}
+[[ "$build" =~ ^[0-9]+$ && "$attempt" =~ ^[0-9]+$ ]]
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build.$attempt" "$app/Info.plist"
 xcrun clang -target armv7-apple-ios9.0 -isysroot "$sdk" -fobjc-arc -fmodules-cache-path="$out/modules" \
   -Os -c ios/FrameApp.m -o "$out/FrameApp.o"
 xcrun ld-classic -arch armv7 -platform_version ios 9.0 10.3 -syslibroot "$sdk" \
@@ -16,5 +20,5 @@ python3 ios/verify.py "$app"
 (cd "$out" && /usr/bin/zip -qry iFrame3-armv7.ipa Payload)
 mkdir -p "$out/debian/Applications" "$out/debian/DEBIAN"
 cp -R "$app" "$out/debian/Applications/"
-cp ios/control "$out/debian/DEBIAN/control"
+sed "s/^Version: .*/Version: 0.1-$build.$attempt/" ios/control > "$out/debian/DEBIAN/control"
 dpkg-deb --root-owner-group -Zgzip --build "$out/debian" "$out/iFrame3-armv7.deb"
