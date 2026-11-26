@@ -11,6 +11,9 @@ def verify(bundle):
         info = plistlib.load(source)
     if info["MinimumOSVersion"] != "9.0" or info["UIDeviceFamily"] != [2]:
         raise ValueError("Expected an iPad application for iOS 9")
+    transport = info.get("NSAppTransportSecurity", {})
+    if transport != {"NSExceptionDomains": {"localhost": {"NSExceptionAllowsInsecureHTTPLoads": True}}}:
+        raise ValueError("The iOS 9 frame requires an HTTP exception scoped to localhost")
     binary = (bundle / info["CFBundleExecutable"]).read_bytes()
     magic, cpu, subtype, kind, count, size, _ = struct.unpack_from("<7I", binary)
     if (magic, cpu, subtype & 0xffffff, kind) != (0xfeedface, 12, 9, 2):

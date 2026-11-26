@@ -18,7 +18,7 @@
     self.webView.scrollView.scrollEnabled = NO;
     self.view = self.webView;
     NSNumber *port = [NSBundle.mainBundle objectForInfoDictionaryKey:@"FrameServerPort"];
-    self.frameURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://127.0.0.1:%@/", port]];
+    self.frameURL = [NSURL URLWithString:[NSString stringWithFormat:@"http://localhost:%@/", port]];
     [self openFrame];
 }
 - (BOOL)prefersStatusBarHidden { return YES; }
@@ -32,7 +32,10 @@
 }
 - (void)webView:(WKWebView *)view didFailProvisionalNavigation:(WKNavigation *)navigation
       withError:(NSError *)error {
-    if (error.code != NSURLErrorCancelled) [self retry];
+    if (error.code != NSURLErrorCancelled) {
+        NSLog(@"iFrame3 page load failed %@ %ld", error.domain, (long)error.code);
+        [self retry];
+    }
 }
 - (void)webView:(WKWebView *)view didFailNavigation:(WKNavigation *)navigation
       withError:(NSError *)error {
