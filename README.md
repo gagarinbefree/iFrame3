@@ -1,15 +1,22 @@
 # iFrame3
 
-Полноэкранная фоторамка для iPad 3 с iOS 9. Приложение на Objective-C и UIKit читает фотографии напрямую из SMB-папки и её подпапок. Снимки показываются в случайном порядке, целиком и с сохранением пропорций. Пока рамка открыта, экран остаётся включённым.
+iFrame3 turns an iPad 3 running iOS 9 into a full-screen photo frame. It reads photos directly from an SMB share and its subfolders, shuffles them and fits each photo on screen with its original proportions. The screen stays awake while the slideshow is active.
 
-## Настройка на iPad
+## Connect a photo share
 
-Скопируйте [пример настроек](ios/settings.example.json) в `/var/mobile/Media/iFrame3Native/settings.json`. Укажите в `host` имя или IP-адрес компьютера, в `share` имя общей папки, а в `folder` путь внутри неё. Для показа всей общей папки оставьте `folder` пустым. У гостевой учётной записи должен быть доступ на чтение. После изменения настроек снова откройте приложение.
+1. Give the guest account read access to the photo share.
+2. Copy the [example settings](ios/settings.example.json) to `/var/mobile/Media/iFrame3Native/settings.json` on the iPad.
+3. Set `host` to the server name or IP address and `share` to the shared folder name. Set `folder` to a subfolder path or leave it empty to start at the share root.
+4. Open **iFrame3 Native**. Reopen the app after changing its settings.
 
-По умолчанию фотографии сменяются каждые 10 секунд. После показа рамка сохраняет уменьшенную копию на устройстве. Когда папка недоступна, показ продолжается из кэша. Лимит в 50 фотографий задаётся в `cacheLimit`, а размеры копии — в `maxPhotoWidth` и `maxPhotoHeight`. Журнал показа находится рядом с настройками в файле `frame.log`.
+## Playback and storage
 
-## Сборка и установка
+Photos change every 10 seconds by default. Adjust `slideshowIntervalSeconds` to change the interval. After a photo appears on screen, the app saves a resized JPEG on the iPad. Subsequent views can use that copy. If the share becomes unavailable, the slideshow continues with photos already cached for that source.
 
-GitHub Actions собирает ARMv7-пакет из ветки `main` на macOS. Артефакт `iFrame3-native-armv7` содержит установочный пакет `.deb`, архив `.ipa` и утилиту проверки `FrameCheck`. На Windows подключённый iPad может получать обновления через USB. [Настройка обновлений](tools/ipad/README.md)
+The default cache holds 50 photos. Set `cacheLimit` to change the limit and `maxPhotoWidth` and `maxPhotoHeight` to adjust the thumbnail dimensions. The app writes display and cache events to `frame.log` next to the settings file.
 
-Приложение, его ресурсы и тесты находятся в каталоге [ios](ios/README.md).
+## Build and install
+
+The GitHub Actions workflow builds the ARMv7 application from `main` on macOS. Download the `iFrame3-native-armv7` artifact for the Debian installation package, the IPA archive and the `FrameCheck` device test. A paired iPad can receive verified builds over USB from Windows. [USB update instructions](tools/ipad/README.md)
+
+The application uses Objective-C, UIKit and libsmb2. The native sources, artwork and tests are in the iOS directory. [Build and device test details](ios/README.md)

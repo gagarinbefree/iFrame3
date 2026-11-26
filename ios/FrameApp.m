@@ -4,6 +4,10 @@
 
 static NSString *const folder = @"/var/mobile/Media/iFrame3Native";
 
+/**
+ * record. Writes a timestamped event to the device log and rotates the previous log.
+ * @param message Slideshow or cache event to record.
+ */
 static void record(NSString *message) {
     NSLog(@"iFrame3 Native %@", message);
     @synchronized (folder) {
@@ -22,6 +26,10 @@ static void record(NSString *message) {
     }
 }
 
+/**
+ * settings. Reads and validates the device configuration before starting the slideshow.
+ * @return The settings dictionary, or nil if the file is missing or its values are invalid.
+ */
 static NSDictionary *settings(void) {
     NSData *data = [NSData dataWithContentsOfFile:[folder stringByAppendingPathComponent:@"settings.json"]];
     NSDictionary *json = data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
@@ -36,7 +44,9 @@ static NSDictionary *settings(void) {
 
 /** FrameController. Presents one image at a time and saves a new frame after display refresh. */
 @interface FrameController : UIViewController
+/** start. Loads the current settings and begins selecting slides on the worker queue. */
 - (void)start;
+/** stop. Cancels pending presentation and releases the library on its worker queue. */
 - (void)stop;
 @end
 @implementation FrameController {
@@ -49,6 +59,7 @@ static NSDictionary *settings(void) {
     CADisplayLink *_displayLink;
     FrameSlide *_pending;
 }
+/** loadView. Creates the full-screen image view with the launch artwork as its first image. */
 - (void)loadView {
     _photo = [[UIImageView alloc] initWithFrame:CGRectZero];
     _photo.backgroundColor = UIColor.blackColor;
@@ -57,6 +68,10 @@ static NSDictionary *settings(void) {
     self.view = _photo;
     _worker = dispatch_queue_create("iframe3.native.photos", DISPATCH_QUEUE_SERIAL);
 }
+/**
+ * prefersStatusBarHidden. Requests an unobstructed photo view.
+ * @return YES throughout the slideshow.
+ */
 - (BOOL)prefersStatusBarHidden { return YES; }
 - (void)start {
     if (_active) return;
@@ -80,6 +95,7 @@ static NSDictionary *settings(void) {
     _pending = nil;
     if (_worker) dispatch_async(_worker, ^{ self->_library = nil; });
 }
+/** next. Loads a slide off the main thread and presents it only if the same session is still active. */
 - (void)next {
     if (!_active) return;
     NSUInteger token = _generation;
@@ -102,6 +118,10 @@ static NSDictionary *settings(void) {
         }
     });
 }
+/**
+ * displayed:. Waits for two display ticks before caching the image and scheduling the next slide.
+ * @param link Display link observing the pending slide.
+ */
 - (void)displayed:(CADisplayLink *)link {
     if (++_ticks < 2) return;
     [link invalidate]; _displayLink = nil;
@@ -115,11 +135,18 @@ static NSDictionary *settings(void) {
 }
 @end
 
+/** FrameApp. Owns the slideshow window and responds to application lifecycle events. */
 @interface FrameApp : UIResponder <UIApplicationDelegate>
 @property(nonatomic,strong) UIWindow *window;
 @property(nonatomic,strong) FrameController *frame;
 @end
 @implementation FrameApp
+/**
+ * application:didFinishLaunchingWithOptions:. Creates the window and installs the frame controller.
+ * @param app Application receiving the launch event.
+ * @param options Launch context supplied by UIKit, if any.
+ * @return YES after the window has been made visible.
+ */
 - (BOOL)application:(UIApplication *)app didFinishLaunchingWithOptions:(NSDictionary *)options {
     self.window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
     self.frame = [FrameController new];
@@ -127,10 +154,24 @@ static NSDictionary *settings(void) {
     [self.window makeKeyAndVisible];
     return YES;
 }
+/**
+ * applicationDidBecomeActive:. Starts the slideshow and keeps the screen awake.
+ * @param app Application entering the active state.
+ */
 - (void)applicationDidBecomeActive:(UIApplication *)app { app.idleTimerDisabled = YES; [self.frame start]; }
+/**
+ * applicationWillResignActive:. Stops presentation and restores the system idle timer.
+ * @param app Application leaving the active state.
+ */
 - (void)applicationWillResignActive:(UIApplication *)app { app.idleTimerDisabled = NO; [self.frame stop]; }
 @end
 
+/**
+ * main. Starts the UIKit event loop with FrameApp as its delegate.
+ * @param argc Number of process arguments.
+ * @param argv Process argument strings.
+ * @return The exit status reported by UIApplicationMain if it returns.
+ */
 int main(int argc, char **argv) {
     @autoreleasepool { return UIApplicationMain(argc, argv, nil, NSStringFromClass(FrameApp.class)); }
 }

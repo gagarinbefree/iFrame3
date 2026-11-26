@@ -1,3 +1,11 @@
+<#
+.SYNOPSIS
+register.ps1. Registers a five-minute USB update check for the signed-in Windows user.
+.PARAMETER Device
+Unique identifier of the paired iPad.
+.PARAMETER Suite
+Directory containing the Windows libimobiledevice tools.
+#>
 param(
     [Parameter(Mandatory = $true)][string]$Device,
     [string]$Suite = 'D:\windows\libimobile-suite-latest_w64'

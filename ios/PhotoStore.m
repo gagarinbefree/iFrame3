@@ -1,6 +1,11 @@
 #import "PhotoStore.h"
 #import <CommonCrypto/CommonDigest.h>
 
+/**
+ * digest. Hashes a cache key for use in a filename.
+ * @param value Source identifier, path or version string in UTF-8.
+ * @return The lowercase hexadecimal SHA-256 digest.
+ */
 static NSString *digest(NSString *value) {
     NSData *data = [value dataUsingEncoding:NSUTF8StringEncoding];
     unsigned char hash[CC_SHA256_DIGEST_LENGTH];
@@ -29,6 +34,10 @@ static NSString *digest(NSString *value) {
     NSString *name = [NSString stringWithFormat:@"%@%@.%@.jpg", _prefix, digest(path), digest(version)];
     return [_directory URLByAppendingPathComponent:name];
 }
+/**
+ * allJPEGs. Enumerates visible JPEG entries across all cached sources.
+ * @return File URLs used to enforce the global cache limit.
+ */
 - (NSArray *)allJPEGs {
     NSArray *urls = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:_directory
                         includingPropertiesForKeys:@[NSURLContentModificationDateKey] options:NSDirectoryEnumerationSkipsHiddenFiles error:nil];
@@ -41,6 +50,7 @@ static NSString *digest(NSString *value) {
     for (NSURL *url in [self allJPEGs]) if ([url.lastPathComponent hasPrefix:_prefix]) [result addObject:url];
     return result;
 }
+/** trim. Removes the oldest JPEGs by modification time until the cache fits its limit. */
 - (void)trim {
     NSArray *files = [self allJPEGs];
     if (files.count <= _limit) return;

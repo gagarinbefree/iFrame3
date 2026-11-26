@@ -1,5 +1,6 @@
 #!/bin/sh
-# Installed under /var/root over the paired USB connection. Run once as root.
+# enable.sh. Installs the staged package and enables the device's USB update job.
+# Run once as root after staging the package through the paired USB connection.
 set -eu
 pkg=/var/root/iframe3-update.deb
 job=/Library/LaunchDaemons/io.github.gagarinbefree.iframe3.update.plist

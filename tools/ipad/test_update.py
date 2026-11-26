@@ -7,11 +7,14 @@ import update
 
 
 class UpdateTests(unittest.TestCase):
+    """UpdateTests. Exercises package validation and installed-state checks for the USB updater."""
     def test_refuses_other_package_formats(self):
+        """test_refuses_other_package_formats. Checks that non-Debian input raises ValueError."""
         with self.assertRaises(ValueError):
             update.contents(b"")
 
     def test_refuses_maintainer_scripts(self):
+        """test_refuses_maintainer_scripts. Checks that a package containing postinst is rejected."""
         control = io.BytesIO()
         with tarfile.open(fileobj=control, mode="w:gz") as archive:
             archive.addfile(tarfile.TarInfo("./postinst"), io.BytesIO())
@@ -26,6 +29,7 @@ class UpdateTests(unittest.TestCase):
             update.contents(bytes(raw))
 
     def test_requires_matching_files_and_configured_package(self):
+        """test_requires_matching_files_and_configured_package. Checks both device bytes and dpkg state."""
         device = Mock()
         expected = {update.APP + "IFrame3Native": b"binary"}
         prefix = b"Package: " + update.PACKAGE.encode()

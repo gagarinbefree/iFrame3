@@ -1,5 +1,9 @@
 #import "../PhotoStore.h"
 
+/**
+ * main. Checks cache lookup, replacement, eviction and source isolation in a temporary directory.
+ * @return Zero when all cache assertions pass.
+ */
 int main(void) {
     @autoreleasepool {
         NSURL *root = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:NSUUID.UUID.UUIDString]];

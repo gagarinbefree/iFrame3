@@ -31,10 +31,19 @@ CACHE = HERE.parents[1] / ".cache" / "ipad-updates"
 
 
 def api(path):
+    """api. Calls the repository's GitHub API through the authenticated CLI.
+
+    :param path: Endpoint relative to the repository API root.
+    :return: Raw response bytes.
+    """
     return subprocess.check_output(["gh", "api", "repos/" + REPO + "/" + path])
 
 
 def latest():
+    """latest. Retrieves and verifies the artifact from the latest successful main build.
+
+    :return: The workflow run ID and the packaged Debian archive bytes.
+    """
     runs = json.loads(api("actions/workflows/ipad.yml/runs?branch=main&status=success&per_page=20"))
     run = next(r for r in runs["workflow_runs"] if r["event"] in ("push", "workflow_dispatch")
                and r["head_branch"] == "main" and r["head_repository"]["full_name"] == REPO)
@@ -59,7 +68,11 @@ def latest():
 
 
 def contents(deb):
-    """Accept only this application's files and plain dpkg metadata."""
+    """contents. Validates the Debian package layout, identifiers, ownership and permissions.
+
+    :param deb: Complete Debian archive bytes.
+    :return: Expected device file contents keyed by package-relative path.
+    """
     if not deb.startswith(b"!<arch>\n") or len(deb) > 16 * 1024 * 1024:
         raise ValueError("Invalid Debian archive")
     members, offset = {}, 8
@@ -101,6 +114,12 @@ def contents(deb):
 
 
 def installed(device, expected):
+    """installed. Checks installed file contents and the package manager's recorded state.
+
+    :param device: Open USB session for the paired iPad.
+    :param expected: Mapping of package-relative paths to their expected bytes.
+    :return: True when all files match and dpkg reports a completed installation.
+    """
     if not all(device.read("/" + name) == data for name, data in expected.items()):
         return False
     status = device.read("/var/lib/dpkg/status") or b""
@@ -109,6 +128,13 @@ def installed(device, expected):
 
 
 def deploy(device, deb, bootstrap):
+    """deploy. Stages a verified package and checks the result of an enabled update job.
+
+    :param device: Open USB session for the target iPad.
+    :param deb: Debian archive to validate and install.
+    :param bootstrap: Also stage the setup script for one-time administrator activation.
+    :return: A status message describing installation or pending activation.
+    """
     expected = contents(deb)
     enabled = device.read(UPDATE_JOB) is not None
     if not enabled and not bootstrap:
@@ -129,6 +155,10 @@ def deploy(device, deb, bootstrap):
 
 
 def main():
+    """main. Parses the command line and checks the selected iPad for updates.
+
+    :return: A status message for the scheduled task log.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--device", required=True)
     parser.add_argument("--suite", type=Path, required=True)
