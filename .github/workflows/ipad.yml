@@ -31,8 +31,10 @@ jobs:
           persist-credentials: false
       - name: Test native photo cache
         run: clang -fobjc-arc -framework Foundation ios/PhotoStore.m ios/tests/store.m -o "$RUNNER_TEMP/store-test" && "$RUNNER_TEMP/store-test"
-      - name: Install Debian package builder
-        run: command -v dpkg-deb || brew install dpkg
+      - name: Install package and artwork tools
+        run: |
+          command -v dpkg-deb || brew install dpkg
+          command -v magick || brew install imagemagick
       - name: Build and verify application
         run: bash ios/build.sh "$PWD/sdk-source/iPhoneOS10.3.sdk" "$RUNNER_TEMP/frame"
       - uses: actions/upload-artifact@v4
