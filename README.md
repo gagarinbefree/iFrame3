@@ -1,39 +1,21 @@
 # iFrame3
 
-Фоторамка для iPad 3 и Safari в iOS 9. Фотографии берутся из локальной или подключённой через SMB папки; уменьшенные копии сохраняются на устройстве. Проверка на iPad пока отложена.
+This branch contains the earlier Safari photo frame for iPad 3 and iOS 9. The local server lists photos in a folder or an SMB share mounted by the operating system. The viewer fits each image on screen, preserves its aspect ratio and supports JPEG, PNG and GIF.
 
-## Настройка и локальный запуск
+## Run locally
 
-Установите Node.js 24 и выполните `npm install`. Все основные настройки задаются в файле `settings.local.json` в папке проекта. Пример находится в `settings.example.json`:
+Install Node.js 24, run `npm install` and copy `settings.example.json` to `settings.local.json`. Set `photosDir` to the local directory, mapped drive or UNC path containing your photos. Escape backslashes in JSON. For a share that requires authentication, connect to it through the operating system. The `PHOTOS_DIR` environment variable can override the configured path.
 
-```json
-{
-  "photosDir": "C:\\Photos",
-  "cacheLimit": 50,
-  "slideshowIntervalSeconds": 10,
-  "maxPhotoWidth": 2048,
-  "maxPhotoHeight": 1536
-}
-```
+Run `npm start` and open `http://localhost:3000/` on the server computer. The server scans subfolders and refreshes its file list approximately every 30 seconds. Set the `PORT` environment variable before starting the server to use another port.
 
-`photosDir` — путь к фотографиям; для SMB можно указать сетевой путь Windows, например `\\\\SERVER\\Photos`, или букву подключённого диска. В JSON обратный слеш записывается дважды. Если общая папка требует авторизации, подключите её средствами Windows; пароли в iFrame3 вводить не нужно. Файл `settings.local.json` содержит локальный путь и исключён из Git.
+## Slideshow and offline storage
 
-`cacheLimit` — максимальное количество копий на устройстве (от 1 до 500); `slideshowIntervalSeconds` — интервал показа в секундах (от 1 до 3600). `maxPhotoWidth` и `maxPhotoHeight` — максимальные размеры горизонтальной фотографии в кэше; для вертикальной они меняются местами. После изменения JSON перезапустите приложение. При необходимости переменная окружения `PHOTOS_DIR` может временно переопределить путь из JSON.
+The default slideshow interval is 10 seconds. Set `slideshowIntervalSeconds` to a value from 1 to 3600. The browser stores resized JPEGs in IndexedDB. The default cache limit is 50 photos and the default landscape size is 2048 by 1536 pixels. Adjust `cacheLimit` (1–500), `maxPhotoWidth` and `maxPhotoHeight` in the settings file, then restart the application. Portrait photos use the reversed dimensions. Transparent areas become white and an animated GIF contributes a single still frame.
 
-Выполните `npm start` и откройте http://localhost:3000/. Приложение сразу показывает фотографии из настроенной папки и всех её подпапок. Снимки целиком помещаются на экране с сохранением пропорций и максимальным заполнением по одной стороне. Поддерживаются JPEG, PNG и GIF.
+When the source folder is unavailable, the viewer can display photos already cached for that folder. Reducing the limit removes older entries. Browser quotas and storage eviction also affect how many photos remain available.
 
-## Кэш и работа без папки
+Safari on iOS 9 uses AppCache to store the viewer itself. Open the viewer once while the server is available and allow photos to be cached. Use the same address and browsing mode when reopening it offline. Browsers without AppCache may continue showing cached images in an open tab, but reopening the viewer offline depends on the browser.
 
-Приложение постепенно сохраняет снимки на устройстве через IndexedDB, уменьшая копии до размеров, заданных в JSON (по умолчанию 2048 × 1536 или 1536 × 2048 для iPad 3) и сохраняя их в JPEG. При повторном показе используется сохранённая копия; изменённый файл обновляется в фоне. Прозрачность заполняется белым, а анимированный GIF сохраняется как неподвижный кадр. Исходники в общей папке не меняются.
+## Development
 
-При уменьшении лимита старые копии удаляются. Если папка недоступна, доступны только сохранённые снимки этой папки. При восстановлении доступа приложение снова использует общую папку. Сервер и страница проверяют состояние примерно каждые 30 секунд; заполнение кэша идёт последовательно и может занять время.
-
-Для открытия фоторамки без сервера целевой Safari iOS 9 использует AppCache для файлов приложения. Сначала откройте приложение при доступном сервере и дождитесь сохранения фотографий. Затем открывайте тот же адрес и используйте тот же режим браузера: хранилище разных адресов и приватного режима не общее. Браузер может ограничить или очистить хранилище; лимит — предел количества, а не гарантия доступного места. Современные браузеры могут не поддерживать AppCache: переключение на сохранённые фото в уже открытой вкладке работает, но повторное открытие полностью без сервера в них не гарантировано. На iPad этот сценарий ещё не проверен.
-
-Сервер создаёт статический список файлов и обновляет его примерно каждые 30 секунд. Сам SMB-доступ обеспечивает операционная система, сервер не хранит учётные данные и не принимает команды записи в папку. Если папка не задана или недоступна, используются сохранённые фото. Сервер пока доступен только на этом компьютере — проверка доступа с iPad отложена.
-
-Если порт 3000 занят, выберите другой: `$env:PORT=3001; npm start`.
-
-## Разработка
-
-Клиент и локальный сервер написаны на TypeScript с использованием классов; интерфейс использует Framework7 v1 и Webpack. JavaScript собирается с синтаксисом ES5. Проверки: `npm test`, `npm run lint`, `npm run format:check`.
+The client and local server use TypeScript. The client uses Framework7 v1 and Webpack and builds to ES5. Run `npm test`, `npm run lint` and `npm run format:check` to verify changes.
