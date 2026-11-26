@@ -1,0 +1,12 @@
+{
+  "host": "photos.local",
+  "smbPort": 445,
+  "share": "Photos",
+  "folder": "",
+  "domain": "",
+  "user": "Guest",
+  "cacheLimit": 50,
+  "maxPhotoWidth": 2048,
+  "maxPhotoHeight": 1536,
+  "slideshowIntervalSeconds": 10
+}

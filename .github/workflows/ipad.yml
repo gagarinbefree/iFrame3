@@ -1,8 +1,8 @@
-name: iPad 3 application
+name: Objective-C iPad frame
 on:
   workflow_dispatch:
   push:
-    branches: [main, native-ipad-frame]
+    branches: [objectivec-ipad-frame]
     paths: ['ios/**', '.github/workflows/ipad.yml']
 permissions:
   contents: read
@@ -22,14 +22,23 @@ jobs:
           path: sdk-source
           sparse-checkout: iPhoneOS10.3.sdk
           persist-credentials: false
+      - name: Fetch libsmb2
+        uses: actions/checkout@v4
+        with:
+          repository: sahlberg/libsmb2
+          ref: b9444620ba7f26ed216a663bf2282a9427e36c36
+          path: smb-source
+          persist-credentials: false
+      - name: Test native photo cache
+        run: clang -fobjc-arc -framework Foundation ios/PhotoStore.m ios/tests/store.m -o "$RUNNER_TEMP/store-test" && "$RUNNER_TEMP/store-test"
       - name: Install Debian package builder
         run: command -v dpkg-deb || brew install dpkg
       - name: Build and verify application
         run: bash ios/build.sh "$PWD/sdk-source/iPhoneOS10.3.sdk" "$RUNNER_TEMP/frame"
       - uses: actions/upload-artifact@v4
         with:
-          name: iFrame3-armv7
+          name: iFrame3-native-armv7
           path: |
-            ${{ runner.temp }}/frame/iFrame3-armv7.ipa
-            ${{ runner.temp }}/frame/iFrame3-armv7.deb
+            ${{ runner.temp }}/frame/iFrame3-native-armv7.ipa
+            ${{ runner.temp }}/frame/iFrame3-native-armv7.deb
           if-no-files-found: error

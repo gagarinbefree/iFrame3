@@ -2,10 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleIdentifier</key><string>io.github.gagarinbefree.iframe3</string>
-  <key>CFBundleDisplayName</key><string>iFrame3</string>
-  <key>CFBundleName</key><string>iFrame3</string>
-  <key>CFBundleExecutable</key><string>IFrame3</string>
+  <key>CFBundleIdentifier</key><string>io.github.gagarinbefree.iframe3.native</string>
+  <key>CFBundleDisplayName</key><string>iFrame3 Native</string>
+  <key>CFBundleName</key><string>iFrame3 Native</string>
+  <key>CFBundleExecutable</key><string>IFrame3Native</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundleVersion</key><string>1</string>
@@ -23,14 +23,5 @@
   </array>
   <key>UIRequiresFullScreen</key><true/>
   <key>UIStatusBarHidden</key><true/>
-  <key>FrameServerPort</key><integer>3000</integer>
-  <key>NSAppTransportSecurity</key>
-  <dict>
-    <key>NSExceptionDomains</key>
-    <dict>
-      <key>localhost</key>
-      <dict><key>NSExceptionAllowsInsecureHTTPLoads</key><true/></dict>
-    </dict>
-  </dict>
 </dict>
 </plist>
