@@ -14,9 +14,10 @@ cc=(xcrun clang -target armv7-apple-ios9.0 -isysroot "$sdk" -Os -I"$lib/include"
 # This SDK snapshot omits seven public libc exports from the ARMv7 linker metadata.
 # The device's libSystem supplies them. Keep the real install name and re-exports.
 mkdir -p "$out/stubs"
-sed '/^exports:$/a\
-  - archs: [ armv7 ]\
-    symbols: [ _memcmp, _memcpy, _memmove, _memset, _strchr, _strcmp, _strncmp ]' \
+awk '{print} /^exports:$/ {
+  print "  - archs: [ armv7 ]"
+  print "    symbols: [ _memcmp, _memcpy, _memmove, _memset, _strchr, _strcmp, _strncmp ]"
+}' \
   "$sdk/usr/lib/libSystem.B.tbd" > "$out/stubs/libSystem.tbd"
 ld=(xcrun ld-classic -arch armv7 -platform_version ios 9.0 10.3 -syslibroot "$sdk" -L"$out/stubs")
 for source in "$lib"/lib/*.c; do

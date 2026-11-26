@@ -77,7 +77,7 @@ static NSDictionary *settings(void) {
     [NSObject cancelPreviousPerformRequestsWithTarget:self];
     [_displayLink invalidate]; _displayLink = nil;
     _pending = nil;
-    dispatch_async(_worker, ^{ self->_library = nil; });
+    if (_worker) dispatch_async(_worker, ^{ self->_library = nil; });
 }
 - (void)next {
     if (!_active) return;

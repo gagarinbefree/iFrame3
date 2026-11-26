@@ -14,7 +14,7 @@
     struct smb2_context *_smb;
     NSMutableArray *_directories, *_deck, *_offline;
     NSDate *_retryAt;
-    NSString *_lastPath;
+    NSString *_lastPath, *_lastCacheName;
     BOOL _first;
 }
 - (instancetype)initWithSettings:(NSDictionary *)settings cacheDirectory:(NSURL *)directory {
@@ -46,11 +46,13 @@
         host = [NSString stringWithFormat:@"%@:%@", host, _settings[@"smbPort"]];
     smb2_set_timeout(_smb, 5);
     smb2_set_version(_smb, SMB2_VERSION_ANY2);
-    NSString *user = _settings[@"user"] ?: @"Guest";
+    // NTLM folds account names to uppercase; libc's byte-wise toupper cannot fold Cyrillic.
+    NSString *user = [_settings[@"user"] uppercaseString] ?: @"GUEST";
     smb2_set_user(_smb, user.UTF8String);
     smb2_set_password(_smb, "");
     smb2_set_domain(_smb, [_settings[@"domain"] UTF8String] ?: "");
     if (smb2_connect_share(_smb, host.UTF8String, share.UTF8String, user.UTF8String) < 0) {
+        NSLog(@"iFrame3 Native SMB connect failed: %s", smb2_get_error(_smb));
         [self disconnected]; return NO;
     }
     NSLog(@"iFrame3 Native SMB connected");
@@ -80,7 +82,7 @@
 }
 - (UIImage *)download:(NSDictionary *)photo {
     struct smb2fh *handle = smb2_open(_smb, [photo[@"path"] UTF8String], O_RDONLY);
-    if (!handle) return nil;
+    if (!handle) { [self disconnected]; return nil; }
     NSURL *temp = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:NSUUID.UUID.UUIDString]];
     FILE *file = fopen(temp.fileSystemRepresentation, "wb");
     int n = -1;
@@ -95,6 +97,7 @@
         if (fclose(file) != 0) n = -1;
     }
     smb2_close(_smb, handle);
+    if (n < 0) [self disconnected];
     UIImage *image = nil;
     if (n == 0 && total && total == [photo[@"bytes"] unsignedLongLongValue]) {
         CGImageSourceRef source = CGImageSourceCreateWithURL((__bridge CFURLRef)temp, NULL);
@@ -129,10 +132,12 @@
     if (!_offline.count) _offline = [_store.files mutableCopy];
     while (_offline.count) {
         NSUInteger i = arc4random_uniform((uint32_t)_offline.count);
+        if (_offline.count > 1 && [[_offline[i] lastPathComponent] isEqual:_lastCacheName])
+            i = (i+1)%_offline.count;
         NSURL *file = _offline[i];
         [_offline removeObjectAtIndex:i];
         FrameSlide *slide = [self cached:file];
-        if (slide) return slide;
+        if (slide) { _lastCacheName = file.lastPathComponent; return slide; }
     }
     return nil;
 }
