@@ -41,4 +41,5 @@ jobs:
           path: |
             ${{ runner.temp }}/frame/iFrame3-native-armv7.ipa
             ${{ runner.temp }}/frame/iFrame3-native-armv7.deb
+            ${{ runner.temp }}/frame/FrameCheck
           if-no-files-found: error

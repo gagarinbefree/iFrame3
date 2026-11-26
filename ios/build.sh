@@ -11,7 +11,14 @@ attempt=${GITHUB_RUN_ATTEMPT:-1}
 [[ "$build" =~ ^[0-9]+$ && "$attempt" =~ ^[0-9]+$ ]]
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build.$attempt" "$app/Info.plist"
 cc=(xcrun clang -target armv7-apple-ios9.0 -isysroot "$sdk" -Os -I"$lib/include")
-ld=(xcrun ld-classic -arch armv7 -platform_version ios 9.0 10.3 -syslibroot "$sdk")
+# This SDK snapshot omits seven public libc exports from the ARMv7 linker metadata.
+# The device's libSystem supplies them. Keep the real install name and re-exports.
+mkdir -p "$out/stubs"
+sed '/^exports:$/a\
+  - archs: [ armv7 ]\
+    symbols: [ _memcmp, _memcpy, _memmove, _memset, _strchr, _strcmp, _strncmp ]' \
+  "$sdk/usr/lib/libSystem.B.tbd" > "$out/stubs/libSystem.tbd"
+ld=(xcrun ld-classic -arch armv7 -platform_version ios 9.0 10.3 -syslibroot "$sdk" -L"$out/stubs")
 for source in "$lib"/lib/*.c; do
   "${cc[@]}" -DHAVE_CONFIG_H '-D_U_=__attribute__((unused))' -I"$lib/include/apple" -I"$lib/include/smb2" \
     -c "$source" -o "$out/objects/$(basename "$source" .c).o"
@@ -25,6 +32,9 @@ for module in FrameApp PhotoLibrary PhotoStore; do
 done
 frameworks=(-framework UIKit -framework ImageIO -framework QuartzCore -framework Foundation -framework CoreGraphics -lobjc -lSystem)
 "${ld[@]}" -o "$app/IFrame3Native" "$out/FrameApp.o" "$out/PhotoLibrary.o" "$out/PhotoStore.o" "$dylib" "${frameworks[@]}"
+"${cc[@]}" -fobjc-arc -c ios/tests/device.m -o "$out/device-test.o"
+"${ld[@]}" -o "$out/FrameCheck" "$out/device-test.o" "$out/PhotoLibrary.o" "$out/PhotoStore.o" "$dylib" "${frameworks[@]}"
+codesign --force --sign - --timestamp=none --digest-algorithm=sha1 "$out/FrameCheck"
 codesign --force --sign - --timestamp=none --digest-algorithm=sha1 "$app"
 codesign --verify "$app"
 python3 ios/verify.py "$app"
