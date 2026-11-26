@@ -6,11 +6,12 @@ app="$out/Payload/IFrame3Native.app"
 lib="$PWD/smb-source"
 mkdir -p "$app/Frameworks" "$out/objects"
 cp ios/Info.plist "$app/"
-# Use the same centered artwork before UIKit starts and while the first photo loads.
+# Use the same artwork on the Home Screen, at launch, and while the first photo loads.
 for scale in 1 2; do
   suffix=""
   if [[ "$scale" == 2 ]]; then suffix="@2x"; fi
   mark="$app/FrameMark$suffix.png"
+  magick ios/frame-mark.png -resize "$((76 * scale))x$((76 * scale))" "PNG24:$app/FrameIcon$suffix.png"
   magick ios/frame-mark.png -resize "$((192 * scale))x$((192 * scale))" "PNG24:$mark"
   magick "$mark" -background black -gravity center -extent "$((768 * scale))x$((1024 * scale))" "PNG24:$app/FrameLaunch-Portrait$suffix.png"
   magick "$mark" -background black -gravity center -extent "$((1024 * scale))x$((768 * scale))" "PNG24:$app/FrameLaunch-Landscape$suffix.png"

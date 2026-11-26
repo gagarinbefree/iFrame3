@@ -4,6 +4,13 @@
 <dict>
   <key>CFBundleIdentifier</key><string>io.github.gagarinbefree.iframe3.native</string>
   <key>CFBundleDisplayName</key><string>iFrame3 Native</string>
+  <key>CFBundleIcons</key>
+  <dict>
+    <key>CFBundlePrimaryIcon</key>
+    <dict>
+      <key>CFBundleIconFiles</key><array><string>FrameIcon</string></array>
+    </dict>
+  </dict>
   <key>CFBundleName</key><string>iFrame3 Native</string>
   <key>CFBundleExecutable</key><string>IFrame3Native</string>
   <key>CFBundlePackageType</key><string>APPL</string>

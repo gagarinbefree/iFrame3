@@ -6,12 +6,16 @@ import sys
 from pathlib import Path
 
 
-def verify_launch_art(bundle, info):
+def verify_artwork(bundle, info):
     launch = info.get("UILaunchImageFile")
     if not launch:
         raise ValueError("Missing the iPad launch image declaration")
+    icon_files = info.get("CFBundleIcons", {}).get("CFBundlePrimaryIcon", {}).get("CFBundleIconFiles", [])
+    if "FrameIcon" not in icon_files:
+        raise ValueError("Missing the iPad Home Screen icon declaration")
     for scale, suffix in ((1, ""), (2, "@2x")):
         for name, width, height in (
+            ("FrameIcon", 76, 76),
             ("FrameMark", 192, 192),
             (launch + "-Portrait", 768, 1024),
             (launch + "-Landscape", 1024, 768),
@@ -20,7 +24,7 @@ def verify_launch_art(bundle, info):
             with path.open("rb") as resource:
                 header = resource.read(24)
             if header[:8] != b"\x89PNG\r\n\x1a\n" or struct.unpack(">II", header[16:24]) != (width * scale, height * scale):
-                raise ValueError(f"Invalid iPad launch artwork: {path.name}")
+                raise ValueError(f"Invalid iPad artwork: {path.name}")
 
 
 def verify(bundle):
@@ -30,7 +34,7 @@ def verify(bundle):
         raise ValueError("Expected an iPad application for iOS 9")
     if info["CFBundleIdentifier"] != "io.github.gagarinbefree.iframe3.native":
         raise ValueError("Use the separate native app identifier")
-    verify_launch_art(bundle, info)
+    verify_artwork(bundle, info)
     binary = (bundle / info["CFBundleExecutable"]).read_bytes()
     magic, cpu, subtype, kind, count, size, _ = struct.unpack_from("<7I", binary)
     if (magic, cpu, subtype & 0xffffff, kind) != (0xfeedface, 12, 9, 2):
